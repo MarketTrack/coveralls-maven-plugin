@@ -12,10 +12,10 @@ package org.eluder.coveralls.maven.plugin;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -102,7 +102,7 @@ public class CoverallsReportMojo extends AbstractMojo {
      */
     @Parameter(property = "coverallsFile", defaultValue = "${project.build.directory}/coveralls.json")
     protected File coverallsFile;
-    
+
     /**
      * Url for the Coveralls API.
      */
@@ -114,49 +114,49 @@ public class CoverallsReportMojo extends AbstractMojo {
      */
     @Parameter(property = "sourceDirectories")
     protected List<File> sourceDirectories;
-    
+
     /**
      * Source file encoding.
      */
     @Parameter(property = "sourceEncoding", defaultValue = "${project.build.sourceEncoding}")
     protected String sourceEncoding;
-    
+
     /**
      * CI service name.
      */
     @Parameter(property = "serviceName")
     protected String serviceName;
-    
+
     /**
      * CI service job id.
      */
     @Parameter(property = "serviceJobId")
     protected String serviceJobId;
-    
+
     /**
      * CI service build number.
      */
     @Parameter(property = "serviceBuildNumber")
     protected String serviceBuildNumber;
-    
+
     /**
      * CI service build url.
      */
     @Parameter(property = "serviceBuildUrl")
     protected String serviceBuildUrl;
-    
+
     /**
      * CI service specific environment properties.
      */
     @Parameter(property = "serviceEnvironment")
     protected Properties serviceEnvironment;
-    
+
     /**
      * Coveralls repository token.
      */
     @Parameter(property = "repoToken")
     protected String repoToken;
-    
+
     /**
      * Git branch name.
      */
@@ -170,6 +170,12 @@ public class CoverallsReportMojo extends AbstractMojo {
     protected String pullRequest;
 
     /**
+     * Send 'parallel' flag to Coveralls.
+     */
+    @Parameter(property = "parallel", defaultValue = "false")
+    protected boolean parallel;
+
+    /**
      * Build timestamp format. Must be in format supported by SimpleDateFormat.
      */
     @Parameter(property = "timestampFormat", defaultValue = "${maven.build.timestamp.format}")
@@ -181,7 +187,7 @@ public class CoverallsReportMojo extends AbstractMojo {
      */
     @Parameter(property = "timestamp", defaultValue = "${maven.build.timestamp}")
     protected String timestamp;
-    
+
     /**
      * Dry run Coveralls report without actually sending it.
      */
@@ -212,7 +218,6 @@ public class CoverallsReportMojo extends AbstractMojo {
     @Parameter(property = "coveralls.skip", defaultValue = "false")
     protected boolean skip;
 
-
     /**
      * Maven settings.
      */
@@ -225,14 +230,13 @@ public class CoverallsReportMojo extends AbstractMojo {
     @Component
     protected MavenProject project;
 
-
     @Override
     public final void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
             getLog().info("Skip property set, skipping plugin execution");
             return;
         }
-        
+
         try {
             createEnvironment().setup();
             Job job = createJob();
@@ -245,11 +249,11 @@ public class CoverallsReportMojo extends AbstractMojo {
             reporters.add(new JobLogger(job));
             SourceCallback sourceCallback = createSourceCallbackChain(writer, reporters);
             reporters.add(new DryRunLogger(job.isDryRun(), writer.getCoverallsFile()));
-            
+
             report(reporters, Position.BEFORE);
             writeCoveralls(writer, sourceCallback, parsers);
             report(reporters, Position.AFTER);
-            
+
             if (!job.isDryRun()) {
                 submitData(client, writer.getCoverallsFile());
             }
@@ -263,7 +267,6 @@ public class CoverallsReportMojo extends AbstractMojo {
     }
 
     /**
-     * 
      * @param sourceLoader source loader that extracts source files
      * @return coverage parsers for all maven modules and additional reports
      * @throws IOException if parsers cannot be created
@@ -276,11 +279,10 @@ public class CoverallsReportMojo extends AbstractMojo {
                 .withRelativeReportDirs(relativeReportDirs)
                 .createParsers();
     }
-    
+
     /**
-     * @return source loader that extracts source files
-     * 
      * @param job the job describing the coveralls report
+     * @return source loader that extracts source files
      */
     protected SourceLoader createSourceLoader(final Job job) {
         return new SourceLoaderFactory(job.getGit().getBaseDir(), project, sourceEncoding)
@@ -295,7 +297,7 @@ public class CoverallsReportMojo extends AbstractMojo {
     protected Environment createEnvironment() {
         return new Environment(this, getServices());
     }
-    
+
     /**
      * @return list of available continuous integration services
      */
@@ -312,7 +314,7 @@ public class CoverallsReportMojo extends AbstractMojo {
         services.add(new General(env));
         return services;
     }
-    
+
     /**
      * @return job that describes the coveralls report
      * @throws ProcessingException if processing of timestamp fails
@@ -322,19 +324,20 @@ public class CoverallsReportMojo extends AbstractMojo {
         Git git = new GitRepository(basedir).load();
         Date time = new TimestampParser(timestampFormat).parse(timestamp);
         return new Job()
-            .withRepoToken(repoToken)
-            .withServiceName(serviceName)
-            .withServiceJobId(serviceJobId)
-            .withServiceBuildNumber(serviceBuildNumber)
-            .withServiceBuildUrl(serviceBuildUrl)
-            .withServiceEnvironment(serviceEnvironment)
-            .withDryRun(dryRun)
-            .withBranch(branch)
-            .withPullRequest(pullRequest)
-            .withTimestamp(time)
-            .withGit(git);
+                .withRepoToken(repoToken)
+                .withServiceName(serviceName)
+                .withServiceJobId(serviceJobId)
+                .withServiceBuildNumber(serviceBuildNumber)
+                .withServiceBuildUrl(serviceBuildUrl)
+                .withServiceEnvironment(serviceEnvironment)
+                .withDryRun(dryRun)
+                .withBranch(branch)
+                .withPullRequest(pullRequest)
+                .withParallel(parallel)
+                .withTimestamp(time)
+                .withGit(git);
     }
-    
+
     /**
      * @param job the job describing the coveralls report
      * @return JSON writer that writes the coveralls data
@@ -343,14 +346,14 @@ public class CoverallsReportMojo extends AbstractMojo {
     protected JsonWriter createJsonWriter(final Job job) throws IOException {
         return new JsonWriter(job, coverallsFile);
     }
-    
+
     /**
      * @return http client that submits the coveralls data
      */
     protected CoverallsClient createCoverallsClient() {
         return new CoverallsProxyClient(coverallsUrl, settings.getActiveProxy());
     }
-    
+
     /**
      * @param writer the JSON writer
      * @param reporters the logging reporters
@@ -392,7 +395,7 @@ public class CoverallsReportMojo extends AbstractMojo {
             writer.close();
         }
     }
-    
+
     private void submitData(final CoverallsClient client, final File coverallsFile) throws ProcessingException, IOException {
         getLog().info("Submitting Coveralls data to API");
         long now = System.currentTimeMillis();
@@ -422,7 +425,7 @@ public class CoverallsReportMojo extends AbstractMojo {
             getLog().warn(message);
         }
     }
-    
+
     private void report(final List<Logger> reporters, final Position position) {
         for (Logger reporter : reporters) {
             if (position.equals(reporter.getPosition())) {

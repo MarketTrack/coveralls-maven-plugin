@@ -12,10 +12,10 @@ package org.eluder.coveralls.maven.plugin.json;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -47,11 +47,11 @@ import java.util.Properties;
 public class JsonWriter implements SourceCallback, Closeable {
 
     protected static final String TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss Z";
-    
+
     private final Job job;
     private final File coverallsFile;
     private final JsonGenerator generator;
-    
+
     public JsonWriter(final Job job, final File coverallsFile) throws IOException {
         File directory = coverallsFile.getParentFile();
         if (!directory.exists()) {
@@ -61,11 +61,11 @@ public class JsonWriter implements SourceCallback, Closeable {
         this.coverallsFile = coverallsFile;
         this.generator = new MappingJsonFactory().createGenerator(coverallsFile, JsonEncoding.UTF8);
     }
-    
+
     public final Job getJob() {
         return job;
     }
-    
+
     public final File getCoverallsFile() {
         return coverallsFile;
     }
@@ -81,6 +81,7 @@ public class JsonWriter implements SourceCallback, Closeable {
             writeOptionalString("service_build_url", job.getServiceBuildUrl());
             writeOptionalString("service_branch", job.getBranch());
             writeOptionalString("service_pull_request", job.getPullRequest());
+            writeOptionalObject("parallel", job.getParallel());
             writeOptionalTimestamp("run_at", job.getTimestamp());
             writeOptionalEnvironment("environment", job.getServiceEnvironment());
             writeOptionalObject("git", job.getGit());
@@ -113,26 +114,26 @@ public class JsonWriter implements SourceCallback, Closeable {
     public void close() throws IOException {
         generator.close();
     }
-    
+
     private void writeOptionalString(final String field, final String value) throws ProcessingException, IOException {
         if (StringUtils.isNotBlank(value)) {
             generator.writeStringField(field, value);
         }
     }
-    
+
     private void writeOptionalObject(final String field, final Object value) throws ProcessingException, IOException {
         if (value != null) {
             generator.writeObjectField(field, value);
         }
     }
-    
+
     private void writeOptionalTimestamp(final String field, final Date value) throws ProcessingException, IOException {
         if (value != null) {
             SimpleDateFormat format = new SimpleDateFormat(TIMESTAMP_FORMAT);
             writeOptionalString(field, format.format(value));
         }
     }
-    
+
     private void writeOptionalEnvironment(final String field, final Properties properties) throws ProcessingException, IOException {
         if (properties != null) {
             generator.writeObjectFieldStart(field);
